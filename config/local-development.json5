@@ -1,0 +1,13 @@
+{
+  db: {
+    engine: "sqlite",
+    storage: "data/db.sqlite",
+    user: "",
+    password: "",
+    host: "",
+    database: "",
+  },
+
+  // Discord bot token
+  discordToken: "Nzk0NDAwMjgxMzQ4NTM4NDAx.X-6Q6g.x2gnXm69FwPQGhZHIZXwNWPhdww",
+}

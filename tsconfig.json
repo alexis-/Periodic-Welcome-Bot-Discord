@@ -1,0 +1,54 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "outDir": "dist/",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+    },
+    "plugins": [
+      { "transform": "ts-nameof", "type": "raw" }
+    ],
+    "lib": [
+      "esnext",
+      "esnext.asynciterable",
+      "dom",
+      "dom.iterable",
+      "scripthost"
+    ]
+  },
+  "files": [ "./src/index.ts"],
+  "include": [
+    "./src/*.js",
+    "./src/*.ts",
+    "./src/*.tsx",
+    "./src/**/*.js",
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
