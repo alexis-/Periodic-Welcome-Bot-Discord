@@ -65,7 +65,7 @@ export default class Server extends Model {
         where: {
           [Op.and]: [
             { setup: true },
-            Sequelize.literal(`${hours} - lastProcessed >= delayHours`)
+            Sequelize.literal(`lastProcessed + delayHours <= ${hours}`)
           ]
         },
         limit: cst.sqlPageSize,

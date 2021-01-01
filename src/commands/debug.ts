@@ -46,7 +46,7 @@ export default abstract class AdminCmd {
       return;
     }
     
-    return welcomeUsers(s.s, message.channel as TextChannel, [ message.member ], null);
+    return welcomeUsers(s.s, message.channel as TextChannel, [ message.member ]);
   }
 
   @Command('dbg when')

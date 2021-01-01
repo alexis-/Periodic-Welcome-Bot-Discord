@@ -6,7 +6,7 @@ import dUtils from '@/utils/discord-utils';
 
 import Server from "@/models/server";
 
-import { welcomeUsers } from '@/tasks/welcome';
+import welcomeTask from '@/tasks/welcome';
 
 import isAdmin from "@/guards/is-admin";
 import isInit from "@/guards/is-initialized";
@@ -116,6 +116,15 @@ export default abstract class AdminCmd {
         sId, false, '0', '0', utils.getElapsedTime(), 24, txt, attach
       )
     );
+  }
+
+  @Command('trigger')
+  @Guard(isAdmin, isInit)
+  async onAdminTrigger(message: CommandMessage, client: Client)
+  {
+    const { s } = await this.getServerFromCommand(message);
+
+    if (s) welcomeTask(s, client);
   }
 
   @CommandNotFound()

@@ -37,11 +37,4 @@ export abstract class Bot {
 
     return Server.findSinceElapsed(elapsedHours, (s) => welcomeTask(s, global.client));
   }
-
-  @Command('dbg trigger')
-  @Guard(isAdmin, isInit)
-  onAdminTrigger()
-  {
-    return this.tick();
-  }
 }
