@@ -7,33 +7,45 @@ import dUtils from '@/utils/discord-utils';
 
 import Server from '@/models/server';
 
-const welcomeTask = async function(s: Server, client: Client) {
+const errSetup = Error('Server is not setup')
+const errChannel = Error('No such channel');
+
+export default async function welcomeTask(
+  s: Server,
+  client: Client,
+  destChannel: TextChannel | null = null,
+  save: boolean = true) {
   try {
-    if (s.setup !== true) return;
+    if (s.setup !== true) return errSetup;
 
-    const channel = await client.channels.fetch(s.channelId) as TextChannel;
+    const welcomeChannel = await client.channels.fetch(s.channelId) as TextChannel;
 
-    if (!channel) return;
+    if (!welcomeChannel) return errChannel;
     
-    const messages = await channel.messages.fetch({
-      after: s.lastReadMessageId
-    });
-    
+    const messages = await dUtils.fetchAllMessagesSince(welcomeChannel, s.lastReadMessageId);
+
     const newUsers: GuildMember[] = [];
     let lastMsgId: string | null = null;
 
-    messages.forEach((m, id) => {
-      if (m.type === 'GUILD_MEMBER_JOIN'
-          && m.author.bot === false
-          && m.member != null
-          && m.member.deleted === false) {
-        newUsers.push(m.member);
-      }
+    await utils.asyncForEach(messages.array(), async (m, id) => {
+      lastMsgId = m.id;
 
-      lastMsgId = id;
+      if (m.type !== 'GUILD_MEMBER_JOIN') return;
+      
+      try {
+        const member = await welcomeChannel.guild.members.fetch(m.author.id);
+
+        if (m.author.bot === false
+            && m.member != null
+            && member.deleted === false) {
+          newUsers.push(member);
+        }
+      } catch (ex) {}
     });
 
-    const nbGreeted = await welcomeUsers(s, channel, newUsers);
+    const nbGreeted = await welcomeUsers(s, destChannel ?? welcomeChannel, newUsers);
+
+    if (!save) return nbGreeted;
 
     if (lastMsgId !== null) {
       await updateServer(s, lastMsgId, nbGreeted);
@@ -41,12 +53,17 @@ const welcomeTask = async function(s: Server, client: Client) {
     else if (nbGreeted > 0) {
       console.error('lastMsgId was null but nbGreeted was positive');
     }
+
+    return nbGreeted;
   } catch (ex) {
     console.error('Error while executing welcome task', ex);
+    return typeof ex === typeof Error
+      ? ex
+      : Error(ex);
   }
 }
 
-const welcomeUsers = async function(s: Server, c: TextChannel, users: GuildMember[]) {
+export async function welcomeUsers(s: Server, c: TextChannel, users: GuildMember[]) {
   if (users.length == 0) return -1;
 
   let msgUsersTemplate = `Welcome ${cst.msgUserPlaceholder}!`;
@@ -78,10 +95,10 @@ const welcomeUsers = async function(s: Server, c: TextChannel, users: GuildMembe
     c.send(msgBody.trim(), msgBodyAttachment);
   }
 
-  return msgUsers.length;
+  return users.length;
 }
 
-const updateServer = (s: Server, lastMsgId: string, nbGreeted: number) => {
+function updateServer(s: Server, lastMsgId: string, nbGreeted: number) {
   s.lastProcessed = utils.getElapsedTime();
 
   s.greetedCount += nbGreeted;
@@ -89,6 +106,3 @@ const updateServer = (s: Server, lastMsgId: string, nbGreeted: number) => {
 
   return s.save();
 }
-
-export default welcomeTask;
-export { welcomeUsers };

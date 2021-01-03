@@ -4,20 +4,21 @@ import Server from "@/models/server";
 
 import utils from '@/utils/general-utils';
 
-import { welcomeUsers } from '@/tasks/welcome';
+import welcomeTask, { welcomeUsers } from '@/tasks/welcome';
 
 import isAdmin from "@/guards/is-admin";
+import isSuperAdmin from "@/guards/is-super-admin";
 import isInit from "@/guards/is-initialized";
 import { TextChannel } from "discord.js";
 
 export default abstract class AdminCmd {
-  private async getServerFromCommand(message: CommandMessage)
+  private async getServerFromCommand(cmd: CommandMessage)
   : Promise<{ id: string, s: Server | null }>
   {
-    const g = message.guild;
+    const g = cmd.guild;
 
     if (!g) {
-      message.reply('Error: guild is null.');
+      cmd.reply('Error: guild is null.');
       return { id: '', s: null };
     }
 
@@ -27,41 +28,56 @@ export default abstract class AdminCmd {
   }
 
   @Command('dbg info')
-  @Guard(isAdmin, isInit)
-  async onDbgInfo(message: CommandMessage) {
-    const s = await this.getServerFromCommand(message);
+  @Guard(isSuperAdmin, isInit)
+  async onDbgInfo(cmd: CommandMessage) {
+    const s = await this.getServerFromCommand(cmd);
     const info = JSON.stringify(s.s);
 
-    console.debug(info);
-    return message.reply(info);
+    return cmd.reply(info);
   }
 
   @Command('dbg test')
   @Guard(isAdmin, isInit)
-  async onDbgTest(message: CommandMessage) {
-    const s = await this.getServerFromCommand(message);
+  async onDbgTest(cmd: CommandMessage) {
+    const s = await this.getServerFromCommand(cmd);
 
-    if (!s.s || !message.member) {
-      message.reply('An error occured.');
+    if (!s.s || !cmd.member) {
+      cmd.reply('An error occured.');
       return;
     }
     
-    return welcomeUsers(s.s, message.channel as TextChannel, [ message.member ]);
+    return welcomeUsers(s.s, cmd.channel as TextChannel, [ cmd.member ]);
+  }
+
+  @Command('dbg trigger')
+  @Guard(isSuperAdmin, isInit)
+  async onDbgTrigger(cmd: CommandMessage, client: Client) {
+    const s = await this.getServerFromCommand(cmd);
+
+    if (!s.s || !cmd.member) {
+      cmd.reply('An error occured.');
+      return;
+    }
+    
+    const res = await welcomeTask(s.s, client, cmd.channel as TextChannel, false);
+
+    if (typeof res === typeof Error) cmd.reply(res);
+    else cmd.reply(`Greeted ${res} users`);
   }
 
   @Command('dbg when')
   @Guard(isAdmin, isInit)
-  async onDbgWhen(message: CommandMessage) {
-    const s = await this.getServerFromCommand(message);
+  async onDbgWhen(cmd: CommandMessage) {
+    const s = await this.getServerFromCommand(cmd);
 
     if (!s.s) {
-      message.reply('An error occured.');
+      cmd.reply('An error occured.');
       return;
     }
     
     const elapsedHours = utils.getElapsedTime();
     const remainingHours = (s.s.lastProcessed + s.s.delayHours - elapsedHours).toFixed(2);
     
-    return message.reply(`Next welcome message in ${remainingHours} hours.`);
+    return cmd.reply(`Next welcome message in ${remainingHours} hours.`);
   }
 }

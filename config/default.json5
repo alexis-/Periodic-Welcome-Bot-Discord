@@ -10,4 +10,5 @@
 
   // Discord bot token
   discordToken: "",
+  superAdmins: [ '419419291549696000' ]
 }

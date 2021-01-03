@@ -35,6 +35,9 @@ export abstract class Bot {
   private tick() {
     const elapsedHours = utils.getElapsedTime();
 
-    return Server.findSinceElapsed(elapsedHours, (s) => welcomeTask(s, global.client));
+    return Server.findSinceElapsed(elapsedHours, async (s) => {
+      await welcomeTask(s, global.client)
+      return;
+    });
   }
 }

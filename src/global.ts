@@ -14,6 +14,7 @@ declare global {
 
   interface WBConfig {
     discordToken: string;
+    superAdmins: string[];
     db: WBConfigDb;
   }
 

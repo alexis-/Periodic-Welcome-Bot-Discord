@@ -9,17 +9,18 @@ import Server from "@/models/server";
 import welcomeTask from '@/tasks/welcome';
 
 import isAdmin from "@/guards/is-admin";
+import isSuperAdmin from "@/guards/is-super-admin";
 import isInit from "@/guards/is-initialized";
 import { TextChannel } from "discord.js";
 
 export default abstract class AdminCmd {
-  private async getServerFromCommand(message: CommandMessage)
+  private async getServerFromCommand(cmd: CommandMessage)
   : Promise<{ id: string, s: Server | null }>
   {
-    const g = message.guild;
+    const g = cmd.guild;
 
     if (!g) {
-      message.reply('Error: guild is null.');
+      cmd.reply('Error: guild is null.');
       return { id: '', s: null };
     }
 
@@ -29,42 +30,44 @@ export default abstract class AdminCmd {
   }
 
   private async updateOrCreateServer(
-    message: CommandMessage,
+    cmd: CommandMessage,
     fnUpdate: (s: Server) => void,
     fnCreate: (sId: string) => Promise<Server>
   )
   {
-    const { id, s } = await this.getServerFromCommand(message);
+    const { id, s } = await this.getServerFromCommand(cmd);
 
     if (!id || id === '') return;
     else if (!s) {
-      return fnCreate(id);
+      fnCreate(id);
     }
     else {
       fnUpdate(s);
       s.updateIsSetup();
 
-      return s.save();
+      await s.save();
     }
+
+    cmd.reply('Done.');
   }
 
   @Command('channel :channel')
   @Guard(isAdmin, isInit)
   async onSetChannel(
-    message: CommandMessage,
+    cmd: CommandMessage,
     client: Client)
   {
-    const channelTxt = message.args.channel;
+    const channelTxt = cmd.args.channel;
     const channel = dUtils.findChannelFromText(channelTxt, client);
 
     if (channel == null) {
-      return message.reply(`Channel ${channelTxt} could not be found.`);
+      return cmd.reply(`Channel ${channelTxt} could not be found.`);
     }
 
     const channelLastMsg = (await channel.messages.fetch({ limit: 1})).first();
     const channelLastMsgId = channelLastMsg?.id ?? '1';
 
-    await this.updateOrCreateServer(message,
+    await this.updateOrCreateServer(cmd,
       (s) => {
         s.channelId = channel.id;
         s.lastReadMessageId = channelLastMsgId;
@@ -77,15 +80,15 @@ export default abstract class AdminCmd {
 
   @Command('delay :delay')
   @Guard(isAdmin, isInit)
-  onSetDelay(message: CommandMessage)
+  onSetDelay(cmd: CommandMessage)
   {
-    const delay = Number(message.args.delay);
+    const delay = Number(cmd.args.delay);
 
     if (delay <= 0 || delay >= cst.maxDelay) {
-      return message.reply(`Invalid delay: ${delay}.\nPlease enter a value between 1 and ${cst.maxDelay} included, in hours. Example: \`wb!delay 48\`.`);
+      return cmd.reply(`Invalid delay: ${delay}.\nPlease enter a value between 1 and ${cst.maxDelay} included, in hours. Example: \`wb!delay 48\`.`);
     }
 
-    return this.updateOrCreateServer(message,
+    return this.updateOrCreateServer(cmd,
       (s) => {
         s.delayHours = delay;
       },
@@ -98,16 +101,16 @@ export default abstract class AdminCmd {
   @Command()
   @Rules(Rule('message').space(/.*/))
   @Guard(isAdmin, isInit)
-  onSetMessage(message: CommandMessage)
+  onSetMessage(cmd: CommandMessage)
   {
-    const txt = message.content.substring(message.content.indexOf(' ') + 1);
-    const attach = message.attachments.first()?.url ?? null;
+    const txt = cmd.content.substring(cmd.content.indexOf(' ') + 1);
+    const attach = cmd.attachments.first()?.url ?? null;
 
     if (!txt || txt.length < cst.msgMinLength) {
-      return message.reply(`Invalid message. Minimum required length: ${cst.msgMinLength}.`);
+      return cmd.reply(`Invalid message. Minimum required length: ${cst.msgMinLength}.`);
     }
 
-    return this.updateOrCreateServer(message,
+    return this.updateOrCreateServer(cmd,
       (s) => {
         s.message = txt;
         s.messageAttachment = attach;
@@ -118,11 +121,47 @@ export default abstract class AdminCmd {
     );
   }
 
-  @Command('trigger')
+  @Command('lastMsg :lastMsg')
   @Guard(isAdmin, isInit)
-  async onAdminTrigger(message: CommandMessage, client: Client)
+  async onSetLastMessage(cmd: CommandMessage, client: Client)
   {
-    const { s } = await this.getServerFromCommand(message);
+    const { s } = await this.getServerFromCommand(cmd);
+
+    if (!s) return;
+
+    const ids = dUtils.getIdsFromMessageMentionText(cmd.args.lastMsg);
+
+    if (!ids) return;
+
+    if (ids.s !== s.id) {
+      cmd.reply('You must specify a message within this server.');
+      return;
+    }
+    else if (ids.c !== s.channelId) {
+      cmd.reply('You must specify a message within the designated welcome channel.');
+      return;
+    }
+
+    const channel = await client.channels.fetch(s.channelId) as TextChannel;
+
+    if (!channel) return;
+
+    const msg = await channel.messages.fetch(ids.m);
+
+    if (!msg) {
+      cmd.reply('The specified message could not be found.');
+      return;
+    }
+    
+    s.lastReadMessageId = msg.id;
+    await s.save();
+  }
+
+  @Command('trigger')
+  @Guard(isSuperAdmin, isInit)
+  async onAdminTrigger(cmd: CommandMessage, client: Client)
+  {
+    const { s } = await this.getServerFromCommand(cmd);
 
     if (s) welcomeTask(s, client);
   }
