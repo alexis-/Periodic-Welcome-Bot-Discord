@@ -13,7 +13,7 @@ import welcomeTask from '@/tasks/welcome';
 import Server from '@/models/server';
 
 @Discord('wb!', {
-  import: [ join(__dirname, 'commands', '*.ts') ]
+  import: [ join(__dirname, 'commands', '*.ts'), join(__dirname, 'commands', '*.js') ]
 })
 export abstract class Bot {
   @On('ready')

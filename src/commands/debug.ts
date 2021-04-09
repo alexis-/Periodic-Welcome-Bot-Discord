@@ -62,7 +62,6 @@ export default abstract class AdminCmd {
     const res = await welcomeTask(s.s, client, cmd.channel as TextChannel, false);
 
     if (typeof res === typeof Error) cmd.reply(res);
-    else cmd.reply(`Greeted ${res} users`);
   }
 
   @Command('dbg when')

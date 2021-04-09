@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2019",
     "module": "commonjs",
     "outDir": "dist/",
     "strict": true,
@@ -25,13 +25,13 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
+      ]
     },
     "plugins": [
       { "transform": "ts-nameof", "type": "raw" }
     ],
     "lib": [
-      "esnext",
+      "es2019",
       "esnext.asynciterable",
       "dom",
       "dom.iterable",
@@ -45,7 +45,7 @@
     "./src/*.tsx",
     "./src/**/*.js",
     "./src/**/*.ts",
-    "./src/**/*.tsx",
+    "./src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
